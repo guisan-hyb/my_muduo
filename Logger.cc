@@ -1,4 +1,5 @@
 #include "Logger.h"
+#include "Timestamp.h"
 
 #include <iostream>
 
@@ -31,5 +32,7 @@ void Logger::log(std::string msg){
         break;
     }
 
-    // TODO...
+    // 打印时间和msg
+    std::cout << Timestamp::now().toString() << " : " << msg << std::endl;
 }
+
