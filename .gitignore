@@ -1,0 +1,57 @@
+# ===== CMake 构建产物 =====
+/build/
+/cmake-build-*/
+/out/
+/CMakeFiles/
+/CMakeCache.txt
+/cmake_install.cmake
+/CTestTestfile.cmake
+/Testing/
+/install_manifest.txt
+/compile_commands.json
+/Makefile
+/build.ninja
+/rules.ninja
+/.ninja_deps
+/.ninja_log
+
+# ===== 编译中间文件和库文件 =====
+*.o
+*.obj
+*.lo
+*.slo
+*.d
+*.a
+*.lib
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exp
+*.pdb
+*.ilk
+*.idb
+
+# ===== 本项目动态库输出目录 =====
+/lib/*.so*
+!/lib/.gitkeep
+
+# ===== 可执行文件和调试文件 =====
+*.out
+*.exe
+core
+core.*
+vgcore.*
+
+# ===== 日志和临时文件 =====
+*.log
+*.tmp
+*.swp
+*~
+.DS_Store
+
+# ===== IDE / 编辑器配置 =====
+.vscode/
+.idea/
+*.user
+*.suo
