@@ -20,8 +20,8 @@ int createEventfd(){
     if(evtfd < 0){
         LOG_FATAL("eventfd error: %d\n", errno);
     }
+    return evtfd;
 }
-
 
 EventLoop::EventLoop()
     : looping_(false) , quit_(false), callingPendingFunctors_(false),threadId_(CurrentThread::tid())
@@ -132,7 +132,7 @@ void EventLoop::handleRead(){
     uint64_t one = 1;
     ssize_t n = read(wakeupFd_, &one, sizeof(one));
     if(n != sizeof(one)){
-        LOG_ERROR("EventLoop::handleRead() reads %d bytes instead of 8", n);
+        LOG_ERROR("EventLoop::handleRead() reads %lu bytes instead of 8", n);
     }
 }
 
