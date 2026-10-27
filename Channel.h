@@ -66,7 +66,7 @@ private:
     const int fd_;// fd, poller监听的对象
     int events_;// 注册fd感兴趣的事件
     int revents_;// poller返回的具体发生的事件
-    int index_;
+    int index_;// 表示channel在poller中的状态： 未添加/已添加/已删除
 
     // 防止手动remove channel后，还在使用channel
     // 所以进行了一个跨进程的对象生存状态的监听
