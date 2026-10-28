@@ -40,7 +40,7 @@ void Acceptor::listen(){
 
 // listenfd有事件发生了，就是有新用户连接了
 void Acceptor::handleRead(){
-    InetAddress peerAddr(0);
+    InetAddress peerAddr;
     int connfd = acceptSocket_.accept(&peerAddr);
     if(connfd >= 0){
         if(newConnectionCallback_){
