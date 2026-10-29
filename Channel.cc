@@ -22,6 +22,7 @@ Channel::~Channel(){
 
 }
 
+// channel的tie方法什么时候调用? 一个TcpConnection新连接创建的时候 TcpConnection => Channel
 void Channel::tie(const std::shared_ptr<void> & obj){
     tie_ = obj;
     tied_ = true;
@@ -54,6 +55,7 @@ void Channel::handleEvent(Timestamp receiveTime){
 void Channel::handleEventWithGuard(Timestamp receiveTime){
     LOG_INFO("channel handleEvent revents: %d\n", revents_);
 
+    // EPOLLHUP这个事件不用专门向epoll注册, epoll本身就给所有sockfd注册过这个事件了
     if((revents_ & EPOLLHUP) && !(revents_ & EPOLLIN)){
         if(closeCallback_){
             closeCallback_();
