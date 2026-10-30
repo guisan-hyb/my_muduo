@@ -9,7 +9,7 @@
 #include <string>
 #include <atomic>
 
-class Thread : public noncopyable, public std::enable_shared_from_this<Thread>
+class Thread : public noncopyable
 {
 public:
     using ThreadFunc = std::function<void()>;
@@ -37,4 +37,3 @@ private:
     std::string name_;
     static std::atomic<int> numCreated_;
 };
-

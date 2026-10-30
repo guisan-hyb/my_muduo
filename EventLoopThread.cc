@@ -22,7 +22,7 @@ EventLoop *EventLoopThread::startLoop(){
     EventLoop *loop = nullptr;
     std::unique_lock<std::mutex> ulk(mutex_);
     cond_.wait(ulk, [&]() {
-        return loop != nullptr;
+        return loop_ != nullptr;
     });
 
     loop = loop_;

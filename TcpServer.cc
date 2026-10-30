@@ -16,7 +16,7 @@ EventLoop* CheckLoopNotNull(EventLoop* loop){
 TcpServer::TcpServer(EventLoop *loop, const InetAddress &listenAddr, const std::string &nameArg, TcpServer::Option option)
     : loop_(CheckLoopNotNull(loop)), ipPort_(listenAddr.toIpPort()), name_(nameArg)
     , acceptor_(new Acceptor(loop,listenAddr, option == kReusePort)), threadPool_(new EventLoopThreadPool(loop,nameArg))
-    , connectionCallback_(), messageCallback_(),nextConnId_(1)
+    , connectionCallback_(), messageCallback_(),nextConnId_(1), started_(0)
 {
     // 当有新用户连接时，会执行TcpServer::newConnection回调
     acceptor_->setNewConnectionCallback(std::bind(&TcpServer::newConnection, this, 

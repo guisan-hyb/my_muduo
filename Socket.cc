@@ -26,9 +26,9 @@ void Socket::listen(){
 
 int Socket::accept(InetAddress *peeraddr){
     sockaddr_in addr;
-    socklen_t len;
+    socklen_t len = sizeof addr; // 一定要初始化
     memset(&addr, 0, sizeof(addr));
-    int connfd = ::accept(sockfd_, (sockaddr *)&addr, &len);
+    int connfd = ::accept4(sockfd_, (sockaddr *)&addr, &len, SOCK_NONBLOCK | SOCK_CLOEXEC); // 设置非阻塞
     if(connfd >= 0){
         peeraddr->setSockAddr(addr);
     }

@@ -26,11 +26,11 @@ void Thread::start(){
     sem_t sem;
     sem_init(&sem, false, 0);
 
-    auto self = shared_from_this();
-    thread_ = std::make_shared<std::thread>([self, &sem]() {
-        self->tid_ = CurrentThread::tid();
+    ThreadFunc func = func_;
+    thread_ = std::make_shared<std::thread>([this, &sem, func = std::move(func)]() {
+        tid_ = CurrentThread::tid();
         sem_post(&sem);
-        self->func_();
+        func();
     });
 
     // 这里必须等待获取上面新创建的线程的tid值
@@ -50,4 +50,3 @@ void Thread::setDefaultName(){
         name_ = buf;
     }
 }
-
