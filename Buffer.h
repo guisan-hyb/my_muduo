@@ -15,7 +15,9 @@ public:
     static const size_t kInitialSize = 1024;
 
     explicit Buffer(size_t initialSize = kInitialSize)
-        : buffer_(kCheapPrepend), readerIndex_(kCheapPrepend) ,writerIndex_(kCheapPrepend)
+        : buffer_(kCheapPrepend + initialSize)
+        , readerIndex_(kCheapPrepend)
+        , writerIndex_(kCheapPrepend)
     {}
 
     size_t readableBytes() const { return writerIndex_ - readerIndex_; }
