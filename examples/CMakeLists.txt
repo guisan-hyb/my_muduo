@@ -1,0 +1,2 @@
+add_executable(echo_server echo_server.cpp)
+target_link_libraries(echo_server PRIVATE my_muduo::my_muduo)

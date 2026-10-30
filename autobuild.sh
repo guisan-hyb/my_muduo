@@ -4,15 +4,10 @@ set -euo pipefail
 
 PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="$PROJECT_DIR/build"
-INCLUDE_DIR="/usr/include/my_muduo"
-LIBRARY="$PROJECT_DIR/lib/libmy_muduo.so"
+BUILD_TYPE="${BUILD_TYPE:-Release}"
+INSTALL_PREFIX="${INSTALL_PREFIX:-/usr/local}"
 
-cmake -S "$PROJECT_DIR" -B "$BUILD_DIR"
+cmake -S "$PROJECT_DIR" -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE="$BUILD_TYPE"
 cmake --build "$BUILD_DIR" --parallel
-
-sudo install -d "$INCLUDE_DIR"
-for header in "$PROJECT_DIR"/*.h; do
-    sudo install -m 644 "$header" "$INCLUDE_DIR/"
-done
-sudo install -m 755 "$LIBRARY" /usr/lib/
+sudo cmake --install "$BUILD_DIR" --prefix "$INSTALL_PREFIX"
 sudo ldconfig
