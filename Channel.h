@@ -44,8 +44,8 @@ public:
 
     // 返回fd当前的事件状态
     bool isNoneEvent() const { return events_ == kNoneEvent; }
-    bool isWriting() const { return events_ == kWriteEvent; }
-    bool isReading() const { return events_ == kReadEvent; }
+    bool isWriting() const { return (events_ & kWriteEvent) != 0; }
+    bool isReading() const { return (events_ & kReadEvent) != 0; }
 
     int index() { return index_; }
     void set_index(int idx) { index_ = idx; }
