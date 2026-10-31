@@ -2,7 +2,6 @@
 
 #include <my_muduo/base/noncopyable.h>
 
-#include <functional>
 #include <string>
 #include <vector>
 #include <memory>
@@ -13,14 +12,12 @@ class EventLoopThread;
 class EventLoopThreadPool: public noncopyable
 {
 public:
-    using ThreadInitCallback = std::function<void(EventLoop *)>;
-
     EventLoopThreadPool(EventLoop *baseLoop, const std::string &nameArg);
     ~EventLoopThreadPool();
 
     void setThreadNum(int numThreads) { numThreads_ = numThreads; }
 
-    void start(const ThreadInitCallback &cb = ThreadInitCallback());
+    void start();
 
     // 如果工作在多线程中，baseLoop_默认以轮询的方式分配channel给subLoop
     EventLoop *getNextLoop();

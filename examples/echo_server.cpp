@@ -2,16 +2,21 @@
 #include <my_muduo/base/Logger.h>
 
 #include <string>
-#include <functional>
+#include <utility>
 
 class EchoServer{
 public:
     EchoServer(EventLoop* loop, const InetAddress& addr, const std::string& name)
-        : server_(loop,addr,name), loop_(loop)
+        : loop_(loop), server_(loop, addr, name)
     {
         // 注册回调函数
-        server_.setConnectionCallback(std::bind(&EchoServer::onConnection, this, std::placeholders::_1));
-        server_.setMessageCallback(std::bind(&EchoServer::onMessage, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+        server_.setConnectionCallback([this](const TcpConnectionPtr &conn) {
+            onConnection(conn);
+        });
+        server_.setMessageCallback(
+            [this](const TcpConnectionPtr &conn, Buffer *buf, Timestamp time) {
+                onMessage(conn, buf, time);
+            });
 
         // 设置合适的loop线程数量  loopthread
         server_.setThreadNum(3);
@@ -32,10 +37,10 @@ private:
     }
 
     // 可读写事件的回调
-    void onMessage(const TcpConnectionPtr& conn, Buffer* buf, Timestamp time){
+    void onMessage(const TcpConnectionPtr& conn, Buffer* buf, Timestamp){
         std::string msg = buf->retrieveAllAsString();
-        conn->send(msg);
-        conn->shutdown(); // 关闭写端 => EPOLLHUP => closeCallback_
+        conn->send(std::move(msg));
+        conn->shutdown(); // 关闭写端 => EPOLLHUP => 统一关闭路径
     }
 
     EventLoop *loop_;

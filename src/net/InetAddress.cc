@@ -1,27 +1,24 @@
 #include <my_muduo/net/InetAddress.h>
 
+#include <array>
 #include <cstring>
 
-InetAddress::InetAddress(uint16_t port, const std::string &ip){
-    memset(&addr_, 0, sizeof(addr_));
+InetAddress::InetAddress(uint16_t port, const std::string &ip)
+    : addr_{}
+{
     addr_.sin_family = AF_INET;
-    addr_.sin_addr.s_addr = inet_addr(ip.data());
+    addr_.sin_addr.s_addr = ::inet_addr(ip.c_str());
     addr_.sin_port = htons(port);
 }
 
 std::string InetAddress::toIp() const{
-    char buf[64] = {0};
-    inet_ntop(AF_INET, &addr_.sin_addr, buf, sizeof(buf));
-    return buf;
+    std::array<char, INET_ADDRSTRLEN> buffer{};
+    ::inet_ntop(AF_INET, &addr_.sin_addr, buffer.data(), buffer.size());
+    return buffer.data();
 }
 
 std::string InetAddress::toIpPort() const{
-    char buf[64] = {0};
-    inet_ntop(AF_INET, &addr_.sin_addr, buf, sizeof(buf));
-    size_t end = strlen(buf);
-    uint16_t port = ntohs(addr_.sin_port);
-    sprintf(buf + end, ":%u", port);
-    return buf;
+    return toIp() + ":" + std::to_string(toPort());
 }
 
 uint16_t InetAddress::toPort() const{

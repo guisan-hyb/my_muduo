@@ -1,40 +1,51 @@
 #pragma once
 
-#include <string>
+#include <array>
+#include <cstdio>
+#include <cstdlib>
+#include <mutex>
+#include <string_view>
 
 #include <my_muduo/base/noncopyable.h>
 
+enum class LogLevel
+{
+    Info,
+    Error,
+    Fatal,
+    Debug,
+};
 
 // LOG_INFO("%s %d", arg1, arg2)
 #define LOG_INFO(logmsgFormat, ...)                     \
     do                                                  \
     {                                                   \
         Logger &logger = Logger::GetInst();             \
-        logger.setLogLevel(INFO);                       \
-        char buf[1024] = {0};                           \
-        snprintf(buf, 1024, logmsgFormat, ##__VA_ARGS__); \
-        logger.log(buf);                                \
+        std::array<char, 1024> myMuduoLogBuffer{};      \
+        std::snprintf(myMuduoLogBuffer.data(), myMuduoLogBuffer.size(), \
+                      logmsgFormat, ##__VA_ARGS__);    \
+        logger.log(LogLevel::Info, myMuduoLogBuffer.data()); \
     } while (0)
 
 #define LOG_ERROR(logmsgFormat, ...)                     \
     do                                                  \
     {                                                   \
         Logger &logger = Logger::GetInst();             \
-        logger.setLogLevel(ERROR);                       \
-        char buf[1024] = {0};                           \
-        snprintf(buf, 1024, logmsgFormat, ##__VA_ARGS__); \
-        logger.log(buf);                                \
+        std::array<char, 1024> myMuduoLogBuffer{};      \
+        std::snprintf(myMuduoLogBuffer.data(), myMuduoLogBuffer.size(), \
+                      logmsgFormat, ##__VA_ARGS__);    \
+        logger.log(LogLevel::Error, myMuduoLogBuffer.data()); \
     } while (0)
 
 #define LOG_FATAL(logmsgFormat, ...)                      \
     do                                                    \
     {                                                     \
         Logger &logger = Logger::GetInst();               \
-        logger.setLogLevel(FATAL);                        \
-        char buf[1024] = {0};                             \
-        snprintf(buf, 1024, logmsgFormat, ##__VA_ARGS__); \
-        logger.log(buf);                                  \
-        exit(-1);                                         \
+        std::array<char, 1024> myMuduoLogBuffer{};        \
+        std::snprintf(myMuduoLogBuffer.data(), myMuduoLogBuffer.size(), \
+                      logmsgFormat, ##__VA_ARGS__);      \
+        logger.log(LogLevel::Fatal, myMuduoLogBuffer.data()); \
+        std::exit(EXIT_FAILURE);                          \
     } while (0)
 
 #ifdef MUDEBUG
@@ -42,10 +53,10 @@
     do                                                  \
     {                                                   \
         Logger &logger = Logger::GetInst();             \
-        logger.setLogLevel(DEBUG);                       \
-        char buf[1024] = {0};                           \
-        snprintf(buf, 1024, logmsgFormat, ##__VA_ARGS__); \
-        logger.log(buf);                                \
+        std::array<char, 1024> myMuduoLogBuffer{};      \
+        std::snprintf(myMuduoLogBuffer.data(), myMuduoLogBuffer.size(), \
+                      logmsgFormat, ##__VA_ARGS__);    \
+        logger.log(LogLevel::Debug, myMuduoLogBuffer.data()); \
     } while (0)
 #else
     #define LOG_DEBUG(logmsgFormat, ...)
@@ -53,26 +64,14 @@
 
 
 
-// 定义日志级别 INFO ERROR FATAL DEBUG
-enum LogLevel
-{
-    INFO,  // 普通信息
-    ERROR, // 错误信息
-    FATAL, // core信息
-    DEBUG, // 调试信息
-};
-
-
 // 输出一个日志类
 class Logger : public noncopyable
 {
 public:
     static Logger& GetInst();
-    void setLogLevel(int level);// 设置日志级别
-    void log(std::string msg);
+    void log(LogLevel level, std::string_view message);
 
 private:
     Logger() = default;
-
-    int logLevel_;
+    std::mutex mutex_;
 };

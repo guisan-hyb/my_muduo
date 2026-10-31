@@ -14,18 +14,11 @@ Channel::Channel(EventLoop *loop, int fd)
     , events_(0)
     , revents_(0)
     , index_(-1)
-    , tied_(false)
     {}
 
 
 Channel::~Channel(){
 
-}
-
-// channel的tie方法什么时候调用? 一个TcpConnection新连接创建的时候 TcpConnection => Channel
-void Channel::tie(const std::shared_ptr<void> & obj){
-    tie_ = obj;
-    tied_ = true;
 }
 
 // 当改变channel所表示fd的events事件后，update负责在poller里面更改fd相应事件的epoll_ctl
@@ -41,18 +34,6 @@ void Channel::remove(){
 }
 
 void Channel::handleEvent(Timestamp receiveTime){
-    if(tied_){
-        std::shared_ptr<void> guard = tie_.lock();
-        if(guard){
-            handleEventWithGuard(receiveTime);
-        }
-    }else{
-        handleEventWithGuard(receiveTime);
-    }
-}
-
-// 由poller通知channel发生的具体事件，channel负责调用具体的回调操作
-void Channel::handleEventWithGuard(Timestamp receiveTime){
     LOG_INFO("channel handleEvent revents: %d\n", revents_);
 
     // EPOLLHUP这个事件不用专门向epoll注册, epoll本身就给所有sockfd注册过这个事件了

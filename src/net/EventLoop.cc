@@ -7,9 +7,11 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <exception>
+#include <utility>
 
 // 防止一个线程创建多个EventLoop -> thread_local  (线程单例)
-__thread EventLoop *t_loopInThisThread = nullptr;
+thread_local EventLoop *t_loopInThisThread = nullptr;
 
 // 定义默认的Poller, IO复用接口的超时时间
 const int kPollTimeMs = 10000;
@@ -24,18 +26,28 @@ int createEventfd(){
 }
 
 EventLoop::EventLoop()
-    : looping_(false) , quit_(false), callingPendingFunctors_(false),threadId_(CurrentThread::tid())
-    , poller_(Poller::newDefaultPoller(this)), wakeupFd_(createEventfd()), wakeupChannel_(new Channel(this, wakeupFd_))
+    : looping_(false)
+    , quit_(false)
+    , threadId_(CurrentThread::tid())
+    , poller_(Poller::newDefaultPoller(this))
+    , wakeupFd_(createEventfd())
+    , wakeupChannel_(std::make_unique<Channel>(this, wakeupFd_))
+    , callingPendingFunctors_(false)
 {
-    LOG_DEBUG("EventLoop created %p in thread %d\n", this, threadId_);
+    LOG_DEBUG("EventLoop created %p in thread %d\n",
+              static_cast<void *>(this), static_cast<int>(threadId_));
     if(t_loopInThisThread){
-        LOG_FATAL("Another EventLoop %p exists in this thread %d\n", t_loopInThisThread, threadId_);
+        LOG_FATAL("Another EventLoop %p exists in this thread %d\n",
+                  static_cast<void *>(t_loopInThisThread),
+                  static_cast<int>(threadId_));
     }else{
         t_loopInThisThread = this;
     }
 
     // 设置wakeupfd的事件类型以及发生事件后的回调操作
-    wakeupChannel_->setReadCallback(std::bind(&EventLoop::handleRead, this));
+    wakeupChannel_->setReadCallback([this](Timestamp) {
+        handleRead();
+    });
     // 每一个eventloop都将监听wakeupchannel的EPOLLIN读事件了
     wakeupChannel_->enableReading();
 }
@@ -48,17 +60,24 @@ EventLoop::~EventLoop(){
 }
 
 void EventLoop::loop(){
+    assertInLoopThread();
     looping_ = true;
     quit_ = false;
 
-    LOG_INFO("EventLoop %p start looping \n", this);
+    LOG_INFO("EventLoop %p start looping \n", static_cast<void *>(this));
 
     while(!quit_){
         activeChannels_.clear();
         pollReturnTime_ = poller_->poll(kPollTimeMs, &activeChannels_);
         for(Channel* channel : activeChannels_){
             // Poller监听哪些channel发生事件了，然后上报给EventLoop, 通知channel处理相应事件
-            channel->handleEvent(pollReturnTime_);
+            try {
+                channel->handleEvent(pollReturnTime_);
+            } catch (const std::exception &error) {
+                LOG_ERROR("EventLoop channel exception: %s\n", error.what());
+            } catch (...) {
+                LOG_ERROR("%s", "EventLoop channel unknown exception\n");
+            }
         }
 
         // 执行当前EventLoop事件循环需要处理的回调操作
@@ -70,7 +89,8 @@ void EventLoop::loop(){
         doPendingFunctors();
     }
 
-    LOG_INFO("EventLoop %p stop looping.\n", this);
+    doPendingFunctors();
+    LOG_INFO("EventLoop %p stop looping.\n", static_cast<void *>(this));
     looping_ = false;
 }
 
@@ -87,7 +107,13 @@ void EventLoop::quit(){
 
 void EventLoop::runInLoop(Functor cb){
     if(isInLoopThread()){ // 在当前的loop线程中, 执行cb
-        cb();
+        try {
+            cb();
+        } catch (const std::exception &error) {
+            LOG_ERROR("EventLoop immediate task exception: %s\n", error.what());
+        } catch (...) {
+            LOG_ERROR("%s", "EventLoop immediate task unknown exception\n");
+        }
     }else{ // 在非当前loop线程中执行cb, 就需要唤醒loop所在线程，执行cb
         queueInLoop(cb);
     }
@@ -112,15 +138,17 @@ void EventLoop::wakeup(){
     uint64_t one = 1;
     ssize_t n = write(wakeupFd_, &one, sizeof(one));
     if(n != sizeof(one)){
-        LOG_ERROR("EventLoop::wakeup() writes %lu bytes instead of 8\n", n);
+        LOG_ERROR("EventLoop::wakeup() writes %zd bytes instead of 8\n", n);
     }
 }
 
 void EventLoop::updateChannel(Channel *channel){
+    assertInLoopThread();
     poller_->updateChannel(channel);
 }
 
 void EventLoop::removeChannel(Channel *channel){
+    assertInLoopThread();
     poller_->removeChannel(channel);
 }
 
@@ -128,11 +156,18 @@ bool EventLoop::hasChannel(Channel *channel){
     return poller_->hasChannel(channel);
 }
 
+void EventLoop::assertInLoopThread() const {
+    if (!isInLoopThread()) {
+        LOG_FATAL("EventLoop::assertInLoopThread failed: loop=%p\n",
+                  static_cast<const void *>(this));
+    }
+}
+
 void EventLoop::handleRead(){
     uint64_t one = 1;
     ssize_t n = read(wakeupFd_, &one, sizeof(one));
     if(n != sizeof(one)){
-        LOG_ERROR("EventLoop::handleRead() reads %lu bytes instead of 8", n);
+        LOG_ERROR("EventLoop::handleRead() reads %zd bytes instead of 8", n);
     }
 }
 
@@ -146,7 +181,13 @@ void EventLoop::doPendingFunctors(){
     }
 
     for(auto& functor:functors){
-        functor(); // 执行当前loop需要执行的回调操作
+        try {
+            functor();
+        } catch (const std::exception &error) {
+            LOG_ERROR("EventLoop pending task exception: %s\n", error.what());
+        } catch (...) {
+            LOG_ERROR("%s", "EventLoop pending task unknown exception\n");
+        }
     }
 
     callingPendingFunctors_ = false;

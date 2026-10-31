@@ -2,6 +2,7 @@
 #include <my_muduo/net/EventLoopThread.h>
 
 #include <memory>
+#include <utility>
 
 EventLoopThreadPool::EventLoopThreadPool(EventLoop *baseLoop, const std::string &nameArg)
     : baseLoop_(baseLoop), name_(nameArg), started_(false), numThreads_(0), next_(0)
@@ -12,20 +13,16 @@ EventLoopThreadPool::~EventLoopThreadPool()
 {}
 
 
-void EventLoopThreadPool::start(const EventLoopThreadPool::ThreadInitCallback &cb){
+void EventLoopThreadPool::start(){
     started_ = true;
 
     for (int i = 0; i < numThreads_;++i){
         const std::string threadName = name_ + std::to_string(i);
-        EventLoopThread *t = new EventLoopThread(cb, threadName);
-        threads_.emplace_back(std::unique_ptr<EventLoopThread>(t));
-        loops_.emplace_back(t->startLoop());
+        auto thread = std::make_unique<EventLoopThread>(threadName);
+        loops_.emplace_back(thread->startLoop());
+        threads_.emplace_back(std::move(thread));
     }
 
-    // 整个服务端只有一个线程，运行着baseloop
-    if(numThreads_ == 0 && cb){
-        cb(baseLoop_);
-    }
 }
 
 EventLoop *EventLoopThreadPool::getNextLoop(){

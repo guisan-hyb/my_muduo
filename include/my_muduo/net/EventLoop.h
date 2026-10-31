@@ -40,6 +40,7 @@ public:
     
     // 判断EventLoop对象是否在自己的线程里面
     bool isInLoopThread() const { return threadId_ == CurrentThread::tid(); }
+    void assertInLoopThread() const;
 
 private:
     void handleRead(); // wake up

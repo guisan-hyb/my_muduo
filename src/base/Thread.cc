@@ -1,7 +1,10 @@
 #include <my_muduo/base/Thread.h>
 #include <my_muduo/base/CurrentThread.h>
 
+#include <array>
+#include <cstdio>
 #include <semaphore.h>
+#include <utility>
 
 std::atomic_int Thread::numCreated_(0);
 
@@ -9,14 +12,13 @@ Thread::Thread(ThreadFunc func, const std::string &name)
     : started_(false), joined_(false), tid_(0), func_(std::move(func)), name_(name)
 {
     setDefaultName();
-    ++numCreated_;
 }
 
 Thread::~Thread(){
     --numCreated_;
     if (started_ && !joined_)
     {
-        thread_->detach();
+        thread_.detach();
     }
 }
 
@@ -27,7 +29,7 @@ void Thread::start(){
     sem_init(&sem, false, 0);
 
     ThreadFunc func = func_;
-    thread_ = std::make_shared<std::thread>([this, &sem, func = std::move(func)]() {
+    thread_ = std::thread([this, &sem, func = std::move(func)]() {
         tid_ = CurrentThread::tid();
         sem_post(&sem);
         func();
@@ -35,18 +37,19 @@ void Thread::start(){
 
     // 这里必须等待获取上面新创建的线程的tid值
     sem_wait(&sem);
+    sem_destroy(&sem);
 }
 
 void Thread::join(){
     joined_ = true;
-    thread_->join();
+    thread_.join();
 }
 
 void Thread::setDefaultName(){
     int num = ++numCreated_;
     if(name_.empty()){
-        char buf[32] = {0};
-        snprintf(buf, sizeof(buf), "Thread%d", num);
-        name_ = buf;
+        std::array<char, 32> buffer{};
+        std::snprintf(buffer.data(), buffer.size(), "Thread%d", num);
+        name_ = buffer.data();
     }
 }

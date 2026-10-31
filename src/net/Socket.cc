@@ -25,10 +25,11 @@ void Socket::listen(){
 }
 
 int Socket::accept(InetAddress *peeraddr){
-    sockaddr_in addr;
+    sockaddr_in addr{};
     socklen_t len = sizeof addr; // 一定要初始化
-    memset(&addr, 0, sizeof(addr));
-    int connfd = ::accept4(sockfd_, (sockaddr *)&addr, &len, SOCK_NONBLOCK | SOCK_CLOEXEC); // 设置非阻塞
+    int connfd = ::accept4(
+        sockfd_, reinterpret_cast<sockaddr *>(&addr), &len,
+        SOCK_NONBLOCK | SOCK_CLOEXEC);
     if(connfd >= 0){
         peeraddr->setSockAddr(addr);
     }
@@ -38,7 +39,7 @@ int Socket::accept(InetAddress *peeraddr){
 
 void Socket::shutdownWrite(){
     if(::shutdown(sockfd_, SHUT_WR) < 0){
-        LOG_ERROR("Socket::shutdownWrite error");
+        LOG_ERROR("%s", "Socket::shutdownWrite error");
     }
 }
 

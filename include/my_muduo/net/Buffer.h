@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <sys/types.h>
 
 // 网络库底层的缓冲区
 // prependable bytes + readable bytes + writable bytes

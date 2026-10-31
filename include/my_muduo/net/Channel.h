@@ -4,7 +4,7 @@
 #include <my_muduo/base/Timestamp.h>
 
 #include <functional>
-#include <memory>
+#include <utility>
 
 class EventLoop;
 
@@ -27,9 +27,6 @@ public:
     void setWriteCallback(EventCallback cb) { writeCallback_ = std::move(cb); }
     void setCloseCallback(EventCallback cb) { closeCallback_ = std::move(cb); }
     void setErrorCallback(EventCallback cb) { errorCallback_ = std::move(cb); }
-
-    // 防止当channel被手动remove掉, channel还在执行回调操作
-    void tie(const std::shared_ptr<void> &);
 
     int fd() const { return fd_; }
     int events() const { return events_; }
@@ -55,7 +52,6 @@ public:
 
 private:
     void update();
-    void handleEventWithGuard(Timestamp receiveTime);
 
     // 表示当前fd的状态
     static const int kNoneEvent;
@@ -67,11 +63,6 @@ private:
     int events_;// 注册fd感兴趣的事件
     int revents_;// poller返回的具体发生的事件
     int index_;// 表示channel在poller中的状态： 未添加/已添加/已删除
-
-    // 防止手动remove channel后，还在使用channel
-    // 所以进行了一个跨进程的对象生存状态的监听
-    std::weak_ptr<void> tie_;
-    bool tied_;
 
     // 因为channel通道里面能够获知fd最终发生的具体的事件revents, 所以它负责调用具体事件的回调函数
     ReadEventCallback readCallback_;

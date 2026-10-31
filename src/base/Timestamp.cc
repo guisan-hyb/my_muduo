@@ -1,5 +1,8 @@
 #include <my_muduo/base/Timestamp.h>
 
+#include <array>
+#include <chrono>
+#include <cstdio>
 #include <ctime>
 
 Timestamp::Timestamp() : microSecondsSinceEpoch_(0) {
@@ -11,21 +14,33 @@ Timestamp::Timestamp(int64_t microSecondsSinceEpoch)
 {}
 
 Timestamp Timestamp::now(){
-    return Timestamp(time(nullptr));
+    const auto now = std::chrono::system_clock::now().time_since_epoch();
+    return Timestamp(
+        std::chrono::duration_cast<std::chrono::microseconds>(now).count());
 }
 
 std::string Timestamp::toString() const {
-    char buf[128] = {0};
-    tm *tm_time = localtime(&microSecondsSinceEpoch_);
-    snprintf(buf, 128, "%4d/%02d/%02d %02d:%02d:%02d",
-             tm_time->tm_year + 1900,
-             tm_time->tm_mon + 1,
-             tm_time->tm_mday,
-             tm_time->tm_hour,
-             tm_time->tm_min,
-             tm_time->tm_sec);
+    const auto secondsPart = microSecondsSinceEpoch_ / 1000000;
+    const auto microsPart = microSecondsSinceEpoch_ % 1000000;
+    const auto seconds = static_cast<std::time_t>(secondsPart);
 
-    return buf;
+    std::tm localTime{};
+    if (::localtime_r(&seconds, &localTime) == nullptr) {
+        return {};
+    }
+
+    std::array<char, 64> buffer{};
+    std::snprintf(buffer.data(), buffer.size(),
+                  "%04d/%02d/%02d %02d:%02d:%02d.%06lld",
+                  localTime.tm_year + 1900,
+                  localTime.tm_mon + 1,
+                  localTime.tm_mday,
+                  localTime.tm_hour,
+                  localTime.tm_min,
+                  localTime.tm_sec,
+                  static_cast<long long>(microsPart));
+
+    return buffer.data();
 }
 
 

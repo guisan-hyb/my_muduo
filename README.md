@@ -26,7 +26,7 @@ docs/                    架构与问题修复记录
 
 - Linux
 - CMake 3.16 或更高版本
-- 支持 C++11 的编译器
+- 支持 C++17 的编译器
 - POSIX Threads
 
 当前网络实现依赖 epoll、eventfd 和 accept4，不支持直接在 Windows 上编译。
@@ -67,7 +67,18 @@ printf 'hello\n' | nc 127.0.0.1 8000
 
 示例会把收到的数据发回，然后关闭连接的写端。
 
+## 回调模型
+
+- `TcpServer` 保留连接、消息和写完成三个应用层回调。
+- `Channel` 保留读、写、关闭和错误四个底层事件回调。
+- Acceptor 直接调用所属 TcpServer 的新连接方法。
+- TcpConnection 直接调用所属 TcpServer 的连接移除方法。
+- 跨线程发送和关闭通过所属 EventLoop 的任务队列执行。
+- Channel 中 TcpConnection 的回调使用 `weak_ptr`，避免父子对象形成强引用环。
+
 ## 当前范围
 
-本次重构只整理源码、公开头文件路径和构建方式，没有改变原有实现逻辑。
-当前尚未实现定时器、客户端连接器、应用层拆包和自动化测试。
+当前已删除 Acceptor、TcpConnection 内部的固定回调封装，并将项目升级到
+C++17。详细记录见 `docs/callback-lifecycle-refactor.md`。
+
+定时器、客户端连接器、应用层拆包和自动化测试仍未实现。

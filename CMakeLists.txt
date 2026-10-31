@@ -43,7 +43,7 @@ set_target_properties(my_muduo PROPERTIES
     SOVERSION ${PROJECT_VERSION_MAJOR}
 )
 
-target_compile_features(my_muduo PUBLIC cxx_std_11)
+target_compile_features(my_muduo PUBLIC cxx_std_17)
 target_link_libraries(my_muduo PUBLIC Threads::Threads)
 
 target_include_directories(my_muduo

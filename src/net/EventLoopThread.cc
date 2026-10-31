@@ -2,16 +2,24 @@
 
 #include <my_muduo/net/EventLoop.h>
 
-EventLoopThread::EventLoopThread(const EventLoopThread::ThreadInitCallback &cb, const std::string &name)
-    : loop_(nullptr), exiting_(false), thread_(std::bind(&EventLoopThread::threadFunc, this), name), callback_(cb)
+EventLoopThread::EventLoopThread(const std::string &name)
+    : loop_(nullptr)
+    , thread_([this] {
+        threadFunc();
+    }, name)
 {
     
 }
 
 EventLoopThread::~EventLoopThread(){
-    exiting_ = true;
-    if(loop_ != nullptr){
-        loop_->quit();
+    EventLoop *loop = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        loop = loop_;
+    }
+
+    if(loop != nullptr){
+        loop->quit();
         thread_.join();
     }
 }
@@ -32,9 +40,6 @@ EventLoop *EventLoopThread::startLoop(){
 
 void EventLoopThread::threadFunc(){
     EventLoop loop;
-    if(callback_){
-        callback_(&loop);
-    }
 
     {
         std::lock_guard<std::mutex> lk(mutex_);

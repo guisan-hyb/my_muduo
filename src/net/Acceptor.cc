@@ -2,6 +2,7 @@
 #include <my_muduo/net/EventLoop.h>
 #include <my_muduo/net/InetAddress.h>
 #include <my_muduo/base/Logger.h>
+#include <my_muduo/net/TcpServer.h>
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -17,14 +18,21 @@ static int createNonblocking(){
     return sockfd;
 }
 
-Acceptor::Acceptor(EventLoop *loop, const InetAddress &listenAddr, bool reuseport)
-    : loop_(loop), acceptSocket_(createNonblocking()), acceptChannel_(loop,acceptSocket_.fd()),listening_(false)
+Acceptor::Acceptor(EventLoop *loop, const InetAddress &listenAddr, bool reuseport,
+                   TcpServer &server)
+    : loop_(loop)
+    , server_(server)
+    , acceptSocket_(createNonblocking())
+    , acceptChannel_(loop, acceptSocket_.fd())
+    , listening_(false)
 {
     acceptSocket_.setReuseAddr(true);
     acceptSocket_.setReusePort(reuseport);
     acceptSocket_.bindAddress(listenAddr);
 
-    acceptChannel_.setReadCallback(std::bind(&Acceptor::handleRead, this));
+    acceptChannel_.setReadCallback([this](Timestamp) {
+        handleRead();
+    });
 }
 
 Acceptor::~Acceptor(){
@@ -33,6 +41,7 @@ Acceptor::~Acceptor(){
 }
 
 void Acceptor::listen(){
+    loop_->assertInLoopThread();
     listening_ = true;
     acceptSocket_.listen();
     acceptChannel_.enableReading(); // acceptChannel_ => Poller
@@ -40,14 +49,11 @@ void Acceptor::listen(){
 
 // listenfd有事件发生了，就是有新用户连接了
 void Acceptor::handleRead(){
+    loop_->assertInLoopThread();
     InetAddress peerAddr;
     int connfd = acceptSocket_.accept(&peerAddr);
     if(connfd >= 0){
-        if(newConnectionCallback_){
-            newConnectionCallback_(connfd, peerAddr); // 轮询找到subloop，唤醒，分发当前的新客户端Channel
-        }else{
-            ::close(connfd);
-        }
+        server_.newConnection(connfd, peerAddr);
     }else{
         LOG_ERROR("%s:%s:%d accpet err: %d \n", __FILE__, __FUNCTION__, __LINE__, errno);
         if(errno == EMFILE){ // 文件句柄数不够 

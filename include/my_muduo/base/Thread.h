@@ -4,7 +4,6 @@
 
 #include <functional>
 #include <thread>
-#include <memory>
 #include <unistd.h>
 #include <string>
 #include <atomic>
@@ -31,7 +30,7 @@ private:
 
     bool started_;
     bool joined_;
-    std::shared_ptr<std::thread> thread_;
+    std::thread thread_;
     pid_t tid_;
     ThreadFunc func_;
     std::string name_;

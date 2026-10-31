@@ -4,7 +4,6 @@
 
 #include <errno.h>
 #include <unistd.h>
-#include <cstring>
 
 const int kNew = -1;// 一个channel还没有添加到Poller当中   channel的成员index_ == -1
 const int kAdded = 1;// 一个channel已经添加到了Poller当中
@@ -27,7 +26,7 @@ EPollPoller::~EPollPoller() {
 
 Timestamp EPollPoller::poll(int timeoutMs, ChannelList *activeChannels){
     // 实际上用LOG_DEBUG输出日志更为合理
-    LOG_INFO("func = %s => fd total count: %lu\n", __FUNCTION__, channels_.size());
+    LOG_INFO("func = %s => fd total count: %zu\n", __FUNCTION__, channels_.size());
 
     int numEvents = epoll_wait(epollfd_, events_.data(), static_cast<int>(events_.size()), timeoutMs); // 第二个参数也可以用: &*events_.begin()
     int saveErrno = errno;
@@ -37,7 +36,7 @@ Timestamp EPollPoller::poll(int timeoutMs, ChannelList *activeChannels){
         LOG_INFO("%d events happened\n", numEvents);
         fillActiveChannels(numEvents, activeChannels);
 
-        if(numEvents == events_.size()){
+        if(static_cast<size_t>(numEvents) == events_.size()){
             events_.resize(events_.size() * 2);
         }
     }else if(numEvents == 0){
@@ -45,7 +44,7 @@ Timestamp EPollPoller::poll(int timeoutMs, ChannelList *activeChannels){
     }else{
         if(saveErrno != EINTR){
             errno = saveErrno;
-            LOG_ERROR("EPollPoller::poll() err!");
+            LOG_ERROR("%s", "EPollPoller::poll() err!");
         }
     }
 
@@ -71,7 +70,6 @@ void EPollPoller::updateChannel(Channel *channel){
         channel->set_index(kAdded);
         update(EPOLL_CTL_ADD, channel);
     }else{ // channel已经在poller上注册过了
-        int fd = channel->fd();
         if(channel->isNoneEvent()){
             update(EPOLL_CTL_DEL, channel);
             channel->set_index(kDeleted);
@@ -105,8 +103,7 @@ void EPollPoller::fillActiveChannels(int numEvents, ChannelList *activeChannels)
 
 void EPollPoller::update(int operation, Channel *channel) {
     int fd = channel->fd();
-    epoll_event event;
-    memset(&event, 0, sizeof(event));
+    epoll_event event{};
     event.events = channel->events();
     // event.data.fd = fd;
     event.data.ptr = channel;

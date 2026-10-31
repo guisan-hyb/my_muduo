@@ -8,31 +8,26 @@ Logger& Logger::GetInst(){
     return logger;
 }
 
-void Logger::setLogLevel(int level){
-    logLevel_ = level;
-}
+void Logger::log(LogLevel level, std::string_view message){
+    std::lock_guard<std::mutex> lock(mutex_);
 
-// [级别信息] time: msg
-void Logger::log(std::string msg){
-    switch (logLevel_)
-    {
-    case INFO:
-        std::cout << "[INFO]";
+    const char *levelName = "UNKNOWN";
+    switch (level) {
+    case LogLevel::Info:
+        levelName = "INFO";
         break;
-    case ERROR:
-        std::cout << "[ERROR]";
+    case LogLevel::Error:
+        levelName = "ERROR";
         break;
-    case FATAL:
-        std::cout << "[FATAL]";
+    case LogLevel::Fatal:
+        levelName = "FATAL";
         break;
-    case DEBUG:
-        std::cout << "[DEBUG]";
-        break;
-    default:
+    case LogLevel::Debug:
+        levelName = "DEBUG";
         break;
     }
 
-    // 打印时间和msg
-    std::cout << Timestamp::now().toString() << " : " << msg << std::endl;
+    std::cout << '[' << levelName << ']'
+              << Timestamp::now().toString() << " : " << message << std::endl;
 }
 
