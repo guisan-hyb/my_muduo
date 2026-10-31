@@ -43,9 +43,9 @@
 
 ```text
 include/my_muduo/base/   非网络基础设施
-include/my_muduo/net/    网络库公开接口
+include/my_muduo/net/    网络库公开接口，含 Poller 与 EPollPoller
 src/base/                base 实现
-src/net/                 网络实现与 epoll 内部细节
+src/net/                 网络实现
 examples/                Echo 示例
 docs/                    架构与修复记录
 ```
@@ -58,7 +58,7 @@ docs/                    架构与修复记录
 #include <my_muduo/base/Logger.h>
 ```
 
-`EPollPoller` 位于 `src/net`，不暴露为公开头文件。`CurrentThread` 因为被公开的 `EventLoop.h` 直接引用，仍放在 `include/my_muduo/base`。
+`EPollPoller.h` 与 `Poller.h` 一样作为 `net` 公开头文件放在 `include/my_muduo/net`，具体实现位于 `src/net/EPollPoller.cc`。`CurrentThread` 因为被公开的 `EventLoop.h` 直接引用，也放在 `include/my_muduo/base`。
 
 ---
 
@@ -93,7 +93,7 @@ flowchart TB
 | `EventLoop` | 事件循环；epoll 等待；执行活跃 Channel；跨线程任务队列 | `include/my_muduo/net/EventLoop.h`、`src/net/EventLoop.cc` |
 | `Channel` | 把 fd、感兴趣事件、返回事件和回调绑定在一起 | `include/my_muduo/net/Channel.h`、`src/net/Channel.cc` |
 | `Poller` | 屏蔽 I/O 多路复用实现 | `include/my_muduo/net/Poller.h`、`src/net/Poller.cc` |
-| `EPollPoller` | 用 epoll 实现 `poll/update/remove` | `src/net/EPollPoller.h`、`src/net/EPollPoller.cc` |
+| `EPollPoller` | 用 epoll 实现 `poll/update/remove` | `include/my_muduo/net/EPollPoller.h`、`src/net/EPollPoller.cc` |
 | `EventLoopThread` | 在独立线程中创建并运行一个 `EventLoop` | `include/my_muduo/net/EventLoopThread.h`、`src/net/EventLoopThread.cc` |
 | `EventLoopThreadPool` | 管理工作循环；按轮询分配新连接 | `include/my_muduo/net/EventLoopThreadPool.h`、`src/net/EventLoopThreadPool.cc` |
 | `Socket` | 文件描述符 RAII 与 socket 选项 | `include/my_muduo/net/Socket.h`、`src/net/Socket.cc` |

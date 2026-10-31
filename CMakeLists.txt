@@ -50,8 +50,6 @@ target_include_directories(my_muduo
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/net
 )
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")

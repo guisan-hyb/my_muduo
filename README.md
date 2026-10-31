@@ -7,9 +7,9 @@ one-loop-per-thread 模型。
 
 ```text
 include/my_muduo/base/   基础工具：时间、日志、线程、不可拷贝基类
-include/my_muduo/net/    网络库公开接口
+include/my_muduo/net/    网络库公开接口，含Poller与EPollPoller
 src/base/                基础工具实现
-src/net/                 网络库实现及 epoll 内部实现
+src/net/                 网络库实现
 examples/                Echo 服务器示例
 docs/                    架构与问题修复记录
 ```
