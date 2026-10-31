@@ -50,8 +50,6 @@ TcpConnection::~TcpConnection()
 {
     LOG_INFO("TcpConnection::dtor[%s] at fd = %d state = %d\n",
              name_.data(), channel_->fd(), static_cast<int>(state_.load()));
-
-    channel_->remove();
 }
 
 void TcpConnection::send(std::string data)
