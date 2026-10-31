@@ -47,6 +47,7 @@ vgcore.*
 .DS_Store
 
 # ===== IDE / 编辑器配置 =====
+.vs/
 .vscode/
 .idea/
 *.user
